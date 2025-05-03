@@ -13,17 +13,9 @@ import gpxpy
 import gpxpy.gpx
 import pyproj
 warnings.filterwarnings('ignore')
-
-import tempfile
 import os
 
-# Create or point to a temporary cache directory
-temp_cache_dir = os.path.join(tempfile.gettempdir(), "osmnx_cache")
-os.makedirs(temp_cache_dir, exist_ok=True)
-
-# Configure OSMnx with cache enabled
-ox.settings.use_cache = True
-ox.settings.cache_folder = temp_cache_dir
+ox.settings.use_cache = False  # <-- Most memory-safe
 
 print(f"Cache enabled at: {ox.settings.cache_folder}")
 
