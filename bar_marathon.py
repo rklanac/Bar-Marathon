@@ -48,10 +48,10 @@ class SimplifiedBarMarathonPlanner:
         self.route = None
         self.selected_bars = None
         self.transformer = None
-        
     def download_network(self, network_type='walk', retry_count=3):
         """
         Download the street network around a center point or city center.
+        Modified for better Streamlit compatibility.
         
         Parameters:
         -----------
@@ -61,24 +61,64 @@ class SimplifiedBarMarathonPlanner:
             Number of retries if download fails
         """
         print(f"Downloading {network_type} network around {self.city_name}...")
-
+        
+        # Configure OSMnx for Streamlit compatibility
+        ox.settings.use_cache = True  # Using cache helps with stability
+        ox.settings.cache_folder = '/tmp/osmnx_cache'  # Use /tmp for Streamlit
+        ox.settings.timeout = 180  # Increased timeout for large cities
+        ox.settings.overpass_rate_limit = True  # Enable rate limiting
+        ox.settings.log_console = False  # Disable console logging
+        ox.settings.overpass_settings = '[out:json][timeout:300]'
+    
+        # Clear memory before large operations
+        import gc
+        gc.collect()
+    
         for attempt in range(retry_count):
             try:
                 if self.center_point is None:
+                    # Get the center point from the city name
                     self.center_point = ox.geocode(self.city_name)
                     print(f"Center point: {self.center_point}")
-
-                # Increased timeout for large cities
-                ox.settings.timeout = 180
                 
-                # Try to download a connected graph
-                self.G = ox.graph_from_point(self.center_point,
-                                          dist=self.radius_meters,
-                                          network_type=network_type,
-                                          simplify=True)
+                # Try download with progressively smaller radius if needed
+                current_radius = self.radius_meters
                 
-                # Ensure the graph is projected to a local CRS for accurate distance calculations
-                self.G = ox.project_graph(self.G)
+                # Try to download using graph_from_point
+                print(f"Attempting to download with radius {current_radius}m...")
+                
+                # Use a more robust approach for Streamlit
+                try:
+                    # First attempt with simplified True
+                    self.G = ox.graph_from_point(
+                        self.center_point,
+                        dist=current_radius,
+                        network_type=network_type,
+                        simplify=True
+                    )
+                except Exception as e:
+                    print(f"First attempt failed: {e}")
+                    # Second attempt with simplified False (more stable)
+                    self.G = ox.graph_from_point(
+                        self.center_point,
+                        dist=current_radius,
+                        network_type=network_type,
+                        simplify=False
+                    )
+                    # Simplify after download if possible
+                    try:
+                        self.G = ox.simplify_graph(self.G)
+                    except:
+                        print("Could not simplify graph, using as is")
+                
+                # Project the graph for accurate distance calculations
+                try:
+                    self.G = ox.project_graph(self.G)
+                except Exception as e:
+                    print(f"Error projecting graph: {e}")
+                    # Try with a default projection if needed
+                    import pyproj
+                    self.G.graph['crs'] = 'epsg:3857'  # Web Mercator as fallback
                 
                 # Check if graph is connected - if not, get the largest connected component
                 if not nx.is_strongly_connected(self.G):
@@ -87,8 +127,14 @@ class SimplifiedBarMarathonPlanner:
                     print(f"Using largest connected component with {len(self.G.nodes)} nodes")
                 
                 # Create the transformer for coordinate conversion
-                self.transformer = pyproj.Transformer.from_crs(
-                    self.G.graph['crs'], "EPSG:4326", always_xy=True)
+                try:
+                    self.transformer = pyproj.Transformer.from_crs(
+                        self.G.graph['crs'], "EPSG:4326", always_xy=True)
+                except Exception as e:
+                    print(f"Error creating transformer: {e}")
+                    # Create a default transformer if needed
+                    self.transformer = pyproj.Transformer.from_crs(
+                        "EPSG:3857", "EPSG:4326", always_xy=True)
                 
                 print(f"Network downloaded with {len(self.G.nodes)} nodes and {len(self.G.edges)} edges")
                 
@@ -101,21 +147,47 @@ class SimplifiedBarMarathonPlanner:
                 else:
                     print("Keeping all edges including unnamed ones to ensure connectivity")
                 
+                # Force garbage collection to free memory
+                gc.collect()
+                
                 return self.G
-
+    
             except Exception as e:
                 print(f"Error downloading network (attempt {attempt+1}/{retry_count}): {e}")
+                # Try alternative download approaches
                 if attempt < retry_count - 1:
                     print(f"Retrying in 5 seconds...")
                     time.sleep(5)
-                    # Maybe try with a different radius
-                    if self.radius_meters > 3000:
-                        self.radius_meters = int(self.radius_meters * 0.8)
-                        print(f"Reducing search radius to {self.radius_meters}m")
+                    
+                    # Reduce radius for next attempt
+                    self.radius_meters = int(self.radius_meters * 0.8)
+                    print(f"Reducing search radius to {self.radius_meters}m")
+                    
+                    # Try an alternative download method on the next attempt
+                    if attempt == 0:
+                        try:
+                            print("Trying alternative download method...")
+                            # Try with polygon approach instead
+                            point = tuple(reversed(self.center_point))  # (lat, lng)
+                            self.G = ox.graph_from_address(
+                                self.city_name,
+                                network_type=network_type,
+                                simplify=True
+                            )
+                            if self.G:
+                                print("Alternative download successful!")
+                                # Still need to project
+                                self.G = ox.project_graph(self.G)
+                                return self.G
+                        except Exception as alt_e:
+                            print(f"Alternative method also failed: {alt_e}")
+                    
+                    # Force cleanup
+                    gc.collect()
                 else:
                     print("All attempts failed. Try with a different city or parameters.")
                     return None
-        
+            
     def filter_to_named_edges(self):
         """
         Removes edges without a 'name' attribute from the graph to ensure only named streets are used.
