@@ -329,7 +329,7 @@ def main():
         
         # Add sample route image if available
         st.image("https://upload.wikimedia.org/wikipedia/commons/2/29/A_toast.jpg", 
-                caption="Plan your next bar marathon adventure!", use_column_width=True)
+                caption="Plan your next bar marathon adventure!", use_container_width=True)
 
     # Footer
     st.markdown('<p class="footer">Created with Streamlit, OSMnx, and a love for interesting adventures</p>', 
