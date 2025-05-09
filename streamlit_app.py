@@ -847,9 +847,9 @@ def main():
                     else:
                         st.error("Failed to generate GPX file.")
 
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-            st.error("Please try with different parameters or a different city.")
+            except Exception as e:
+                st.error(f"An error occurred: {str(e)}")
+                st.error("Please try with different parameters or a different city.")
 
     else:
         st.markdown("""
