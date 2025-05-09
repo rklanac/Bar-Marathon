@@ -17,6 +17,7 @@ warnings.filterwarnings('ignore')
 import os
 import time
 from collections import deque
+from pathlib import Path
 
 # Configure OSMnx for better Streamlit compatibility
 ox.settings.use_cache = True
@@ -27,8 +28,6 @@ ox.settings.overpass_rate_limit = True
 ox.settings.overpass_settings = '[out:json][timeout:180]'
 
 @st.cache_data(ttl=3600, show_spinner=False)
-
-from pathlib import Path
 
 def download_network_cached(city_name, center_point=None, radius_meters=5000, network_type='walk'):
     try:
