@@ -212,7 +212,7 @@ def main():
                 
                 # Find bars
                 with st.status("Finding bars in the area...") as status:
-                    bars = planner.find_bars_with_overpy(include_restaurants=include_restaurants)
+                    bars = planner.find_bars_with_overpy()
                     if bars is None or len(bars) == 0:
                         st.error(f"No bars found in {city_name}. Try increasing the search radius or a different city.")
                         status.update(label="No bars found", state="error")
