@@ -658,6 +658,9 @@ import streamlit as st
 from streamlit_folium import st_folium
 
 
+import streamlit as st
+from streamlit_folium import st_folium
+
 def main():
     st.set_page_config(
         page_title="Bar Marathon Planner",
@@ -666,7 +669,6 @@ def main():
         initial_sidebar_state="expanded"
     )
 
-    # Custom CSS to improve the appearance
     st.markdown("""
     <style>
         .main-header {
@@ -706,55 +708,167 @@ def main():
     st.markdown('<h1 class="main-header">🍺 Bar Marathon Planner 🏃‍♂️</h1>', unsafe_allow_html=True)
     st.markdown('<p class="info-text">Create a marathon-length (or any length!) route stopping at bars along the way!</p>', unsafe_allow_html=True)
 
-    # Sidebar: Select City
-    st.sidebar.header("🔍 Select Your City")
-    city_name = st.sidebar.selectbox(
-        "Choose a city to load pre-cached data:",
-        list(CACHED_CITIES.keys()),
-        index=0
-    )
+    with st.sidebar:
+        st.markdown("## Configure Your Bar Marathon")
 
-    # Sidebar: Settings
-    st.sidebar.header("⚙️ Route Settings")
-    num_bars = st.sidebar.slider("Number of Bars", min_value=3, max_value=15, value=9)
-    bar_spacing_km = st.sidebar.slider("Target Distance Between Bars (km)", min_value=0.5, max_value=5.0, step=0.1, value=1.0)
+        city_name = st.selectbox("Choose a city to load pre-cached data:", list(CACHED_CITIES.keys()), index=0)
 
-    # Load graph and venue data from cache
-    G, center_point = download_network_cached(city_name)
-    bars_gdf = find_bars_with_overpy_cached(city_name, center_point)
+        st.markdown("### Marathon Parameters")
 
-    # Create bar marathon route
-    if G is not None and bars_gdf is not None:
-        route, selected_bars = create_bar_marathon_route(G, bars_gdf, bar_spacing=bar_spacing_km, num_bars=num_bars)
-        if route:
-            # Show directions
-            directions_df = get_route_directions(G, route, bars_gdf)
-            with st.expander("🗺️ View Directions"):
-                st.dataframe(directions_df)
+        marathon_type = st.radio(
+            "Marathon Distance Type",
+            ["Standard (42.2km)", "Half (21.1km)", "Custom"]
+        )
 
-            # Show interactive map
-            folium_map = visualize_route_streamlit(G, route, bars_gdf, selected_bars)
-            if folium_map:
-                st.components.v1.html(folium_map._repr_html_(), height=600, scrolling=True)
+        if marathon_type == "Standard (42.2km)":
+            total_distance = 42.2
+            num_bars = st.slider("Number of Bars", min_value=3, max_value=15, value=9)
+            bar_spacing = total_distance / (num_bars - 1) if num_bars > 1 else total_distance
+            st.info(f"Bar spacing: ~{bar_spacing:.2f} km")
 
-            # Download GPX
-            gpx_xml = export_to_gpx(G, route, bars_gdf, city_name)
-            if gpx_xml:
-                st.download_button(
-                    label="💾 Download GPX",
-                    data=gpx_xml,
-                    file_name=f"bar_marathon_{city_name.replace(',', '').replace(' ', '_').lower()}.gpx",
-                    mime="application/gpx+xml"
-                )
+        elif marathon_type == "Half (21.1km)":
+            total_distance = 21.1
+            num_bars = st.slider("Number of Bars", min_value=3, max_value=12, value=6)
+            bar_spacing = total_distance / (num_bars - 1) if num_bars > 1 else total_distance
+            st.info(f"Bar spacing: ~{bar_spacing:.2f} km")
+
         else:
-            st.warning("No valid route found. Adjust settings or try another city.")
+            total_distance = st.number_input("Total Distance (km)", min_value=5.0, max_value=100.0, value=30.0, step=5.0)
+            num_bars = st.slider("Number of Bars", min_value=3, max_value=20, value=8)
+            bar_spacing = st.number_input("Target Bar Spacing (km)", min_value=1.0, max_value=20.0,
+                                          value=total_distance / (num_bars - 1) if num_bars > 1 else total_distance,
+                                          step=0.5)
+
+        with st.expander("Advanced Options"):
+            radius_meters = st.slider("Search Radius (meters)", min_value=2000, max_value=10000, value=5000, step=500)
+            network_type = st.selectbox("Network Type", ["walk", "bike", "drive"], index=0)
+            include_restaurants = st.checkbox("Include Restaurants with Alcohol", value=True)
+
+        create_button = st.button("Create Bar Marathon", type="primary", use_container_width=True)
+
+    if create_button or 'route_created' in st.session_state:
+        if create_button:
+            st.session_state.route_created = True
+            for key in ['G', 'route', 'bars_gdf', 'selected_bars', 'center_point']:
+                st.session_state.pop(key, None)
+
+        with st.spinner("Creating your bar marathon route... This may take a minute."):
+            try:
+                with st.status("Downloading street network...") as status:
+                    if 'G' not in st.session_state or 'center_point' not in st.session_state:
+                        st.session_state.G, st.session_state.center_point = download_network_cached(
+                            city_name, radius_meters=radius_meters, network_type=network_type)
+                    if st.session_state.G is None:
+                        st.error(f"Failed to download network for {city_name}. Try a different city name.")
+                        status.update(label="Network download failed", state="error")
+                        return
+                    status.update(label="Network downloaded successfully!", state="complete")
+
+                with st.status("Finding bars in the area...") as status:
+                    if 'bars_gdf' not in st.session_state:
+                        st.session_state.bars_gdf = find_bars_with_overpy_cached(
+                            city_name, st.session_state.center_point,
+                            radius_meters=radius_meters, include_restaurants=include_restaurants)
+                    if st.session_state.bars_gdf is None or len(st.session_state.bars_gdf) == 0:
+                        st.error(f"No bars found in {city_name}. Try increasing the search radius or a different city.")
+                        status.update(label="No bars found", state="error")
+                        return
+                    status.update(label=f"Found {len(st.session_state.bars_gdf)} bars!", state="complete")
+
+                with st.status("Creating optimal route...") as status:
+                    if 'route' not in st.session_state or 'selected_bars' not in st.session_state or create_button:
+                        st.session_state.route, st.session_state.selected_bars = create_bar_marathon_route(
+                            st.session_state.G, st.session_state.bars_gdf,
+                            bar_spacing=bar_spacing, num_bars=num_bars)
+                    if st.session_state.route is None:
+                        st.error("Failed to create a route. Try different parameters.")
+                        status.update(label="Route creation failed", state="error")
+                        return
+                    status.update(label="Route created successfully!", state="complete")
+
+                tab1, tab2, tab3 = st.tabs(["Map & Summary", "Directions", "Export"])
+
+                with tab1:
+                    st.markdown('<h2 class="sub-header">Your Bar Marathon Route</h2>', unsafe_allow_html=True)
+                    col1, col2 = st.columns([2, 1])
+                    with col1:
+                        st.markdown("### Interactive Map")
+                        route_map = visualize_route_streamlit(
+                            st.session_state.G, st.session_state.route,
+                            st.session_state.bars_gdf, st.session_state.selected_bars)
+                        if route_map:
+                            st_folium(route_map, width=650, height=500)
+                        else:
+                            st.error("Failed to create map visualization.")
+                    with col2:
+                        st.markdown("### Route Summary")
+                        total_distance = st.session_state.route['length']
+                        num_bars = len(st.session_state.selected_bars)
+                        avg_spacing = total_distance / max(1, num_bars - 1)
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("Total Distance", f"{total_distance:.2f} km")
+                        c2.metric("Number of Bars", f"{num_bars}")
+                        c3.metric("Avg. Spacing", f"{avg_spacing:.2f} km")
+                        selected_df = st.session_state.selected_bars[['name', 'amenity']].copy()
+                        selected_df.index = range(1, len(selected_df) + 1)
+                        selected_df.columns = ['Bar Name', 'Type']
+                        st.dataframe(selected_df, use_container_width=True)
+
+                with tab2:
+                    st.markdown('<h2 class="sub-header">Navigation Details</h2>', unsafe_allow_html=True)
+                    directions_df = get_route_directions(
+                        st.session_state.G, st.session_state.route, st.session_state.bars_gdf)
+                    if directions_df is not None:
+                        display_df = directions_df.copy()
+                        display_df.columns = ['Segment', 'From', 'To', 'Distance (km)', 'Total Distance (km)', 'Directions']
+                        st.dataframe(display_df, use_container_width=True)
+                    else:
+                        st.warning("Could not generate detailed directions.")
+                    with st.expander("All Bars in the Area"):
+                        all_bars_df = st.session_state.bars_gdf[['name', 'amenity']].copy()
+                        all_bars_df.columns = ['Bar Name', 'Type']
+                        st.dataframe(all_bars_df, use_container_width=True)
+
+                with tab3:
+                    st.markdown('<h2 class="sub-header">Export Your Route</h2>', unsafe_allow_html=True)
+                    st.markdown("""
+                    Download your bar marathon route as a GPX file that you can import into:
+                    - Navigation apps like Google Maps
+                    - Fitness trackers like Strava or Garmin
+                    - GPS devices
+                    """)
+                    gpx_xml = export_to_gpx(
+                        st.session_state.G, st.session_state.route,
+                        st.session_state.bars_gdf, city_name)
+                    if gpx_xml:
+                        safe_city_name = "".join(c if c.isalnum() else "_" for c in city_name)
+                        filename = f"bar_marathon_{safe_city_name}_{len(st.session_state.selected_bars)}_bars.gpx"
+                        st.download_button("Download GPX File", gpx_xml, filename, mime="application/gpx+xml")
+                    else:
+                        st.error("Failed to generate GPX file.")
+
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
+            st.error("Please try with different parameters or a different city.")
+
     else:
-        st.warning("Unable to load city data. Please try again later.")
+        st.markdown("""
+        ## 🍻 Welcome to the Bar Marathon Planner!
 
-    # Footer
-    st.markdown('<p class="footer">Created with Streamlit, OSMnx, and a love for interesting adventures 🍺🌍</p>', 
-                unsafe_allow_html=True)
+        Create a marathon-length route with stops at bars along the way. Perfect for:
+        - Planning a beer marathon with friends
+        - Creating a fun pub crawl through a new city
+        - Combining exercise with socializing
 
+        ### How to use:
+        1. Choose your city
+        2. Select your distance and bar count
+        3. Customize advanced options
+        4. Click to generate your marathon
+        """)
+        st.image("https://upload.wikimedia.org/wikipedia/commons/2/29/A_toast.jpg", caption="Plan your next bar marathon adventure!")
+
+    st.markdown('<p class="footer">Created with Streamlit, OSMnx, and a love for interesting adventures</p>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
