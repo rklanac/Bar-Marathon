@@ -29,6 +29,27 @@ ox.settings.overpass_settings = '[out:json][timeout:180]'
 
 @st.cache_data(ttl=3600, show_spinner=False)
 
+# Define a list of pre-cached cities
+CACHED_CITIES = {
+    "Boston, MA, USA": {"center": (42.3601, -71.0589), "radius_meters": 5000},
+    "New York, NY, USA": {"center": (40.7128, -74.0060), "radius_meters": 5000},
+    "Chicago, IL, USA": {"center": (41.8781, -87.6298), "radius_meters": 5000},
+    "San Francisco, CA, USA": {"center": (37.7749, -122.4194), "radius_meters": 5000},
+    "Seattle, WA, USA": {"center": (47.6062, -122.3321), "radius_meters": 5000},
+    "Austin, TX, USA": {"center": (30.2672, -97.7431), "radius_meters": 5000},
+    "London, UK": {"center": (51.5074, -0.1278), "radius_meters": 5000},
+    "Berlin, Germany": {"center": (52.5200, 13.4050), "radius_meters": 5000},
+    "Paris, France": {"center": (48.8566, 2.3522), "radius_meters": 5000},
+    "Amsterdam, Netherlands": {"center": (52.3676, 4.9041), "radius_meters": 5000},
+    "Dublin, Ireland": {"center": (53.3498, -6.2603), "radius_meters": 5000},
+    "Prague, Czech Republic": {"center": (50.0755, 14.4378), "radius_meters": 5000},
+    "Barcelona, Spain": {"center": (41.3851, 2.1734), "radius_meters": 5000},
+    "Tokyo, Japan": {"center": (35.6762, 139.6503), "radius_meters": 5000},
+    "Sydney, New South Wales, Australia": {"center": (33.8688, 151.2093), "radius_meters": 5000},
+    "Toronto, Canada": {"center": (43.6532, -79.3832), "radius_meters": 5000},
+    "Montreal, Canada": {"center": (45.5017, -73.5673), "radius_meters": 5000}
+}
+
 def download_network_cached(city_name, center_point=None, radius_meters=5000, network_type='walk'):
     try:
         safe_name = city_name.replace(',', '').replace(' ', '_').lower()
