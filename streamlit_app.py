@@ -183,6 +183,8 @@ def main():
         with st.expander("Advanced Options"):
             radius_meters = st.slider("Search Radius (meters)", min_value=2000, max_value=10000, value=5000, step=500,
                                   help="Radius around city center to search for bars and create the route")
+            network_type = st.selectbox("Network Type", ["walk", "bike", "drive"], index=0,
+                                    help="Type of transportation for the route")
         
         # Create route button
         create_button = st.button("Create Bar Marathon", type="primary", use_container_width=True)
