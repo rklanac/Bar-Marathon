@@ -18,6 +18,7 @@ import os
 import time
 from collections import deque
 from pathlib import Path
+from fuzzywuzzy import process, fuzz
 
 # Define a list of pre-cached cities
 CACHED_CITIES = {
