@@ -745,6 +745,33 @@ def main():
             network_type = st.selectbox("Network Type", ["walk", "bike", "drive"], index=0)
             include_restaurants = st.checkbox("Include Restaurants with Alcohol", value=False)
 
+            # Inside the main() sidebar, after `include_restaurants`
+            start_bar_name = st.text_input("Start at a specific bar (optional)", placeholder="e.g., The Tipsy Pig")
+            matched_bar_name = None
+            start_bar_idx = None
+            
+            if start_bar_name.strip():
+                if 'bars_gdf' in st.session_state and not st.session_state.bars_gdf.empty:
+                    bar_names = st.session_state.bars_gdf['name'].tolist()
+                    matches = process.extract(start_bar_name, bar_names, scorer=fuzz.token_sort_ratio, limit=5)
+            
+                    best_match, best_score = matches[0]
+                    if best_score >= 70:
+                        options = [match[0] for match in matches]
+                        matched_bar_name = st.selectbox("Did you mean one of these bars?", options)
+                        if matched_bar_name:
+                            start_bar_idx = st.session_state.bars_gdf[st.session_state.bars_gdf['name'] == matched_bar_name].index[0]
+                            st.success(f"Selected starting bar: {matched_bar_name}")
+                    else:
+                        st.warning(f"No close matches found for '{start_bar_name}'. Try typing a more accurate name.")
+                else:
+                    st.warning("Bars data not loaded to search start bar.")
+            
+            # Then pass this into the route creation function:
+            st.session_state.route, st.session_state.selected_bars = create_bar_marathon_route(
+                st.session_state.G, st.session_state.bars_gdf,
+                bar_spacing=bar_spacing, num_bars=num_bars, start_bar_idx=start_bar_idx)
+
         create_button = st.button("Create Bar Marathon", type="primary", use_container_width=True)
 
     if create_button or 'route_created' in st.session_state:
