@@ -743,7 +743,7 @@ def main():
         with st.expander("Advanced Options"):
             radius_meters = 5000
             network_type = st.selectbox("Network Type", ["walk", "bike", "drive"], index=0)
-            include_restaurants = st.checkbox("Include Restaurants with Alcohol", value=True)
+            include_restaurants = st.checkbox("Include Restaurants with Alcohol", value=False)
 
         create_button = st.button("Create Bar Marathon", type="primary", use_container_width=True)
 
