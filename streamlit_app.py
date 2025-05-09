@@ -19,16 +19,6 @@ import time
 from collections import deque
 from pathlib import Path
 
-# Configure OSMnx for better Streamlit compatibility
-ox.settings.use_cache = True
-ox.settings.cache_folder = '/tmp/osmnx_cache'
-ox.settings.log_console = False
-ox.settings.timeout = 180
-ox.settings.overpass_rate_limit = True
-ox.settings.overpass_settings = '[out:json][timeout:180]'
-
-@st.cache_data(ttl=3600, show_spinner=False)
-
 # Define a list of pre-cached cities
 CACHED_CITIES = {
     "Boston, MA, USA": {"center": (42.3601, -71.0589), "radius_meters": 5000},
@@ -49,6 +39,16 @@ CACHED_CITIES = {
     "Toronto, Canada": {"center": (43.6532, -79.3832), "radius_meters": 5000},
     "Montreal, Canada": {"center": (45.5017, -73.5673), "radius_meters": 5000}
 }
+
+# Configure OSMnx for better Streamlit compatibility
+ox.settings.use_cache = True
+ox.settings.cache_folder = '/tmp/osmnx_cache'
+ox.settings.log_console = False
+ox.settings.timeout = 180
+ox.settings.overpass_rate_limit = True
+ox.settings.overpass_settings = '[out:json][timeout:180]'
+
+@st.cache_data(ttl=3600, show_spinner=False)
 
 def download_network_cached(city_name, center_point=None, radius_meters=5000, network_type='walk'):
     try:
