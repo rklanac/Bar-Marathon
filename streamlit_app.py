@@ -747,7 +747,7 @@ def main():
             include_restaurants = st.checkbox("Include Restaurants with Alcohol", value=False)
 
             # Inside the main() sidebar, after `include_restaurants`
-            start_bar_name = st.text_input("Start at a specific bar (optional)", placeholder="e.g., The Tipsy Pig")
+            start_bar_name = st.text_input("Start at a specific bar (optional)", placeholder="e.g., Flat Top Johnny's")
             matched_bar_name = None
             start_bar_idx = None
             
