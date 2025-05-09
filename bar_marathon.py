@@ -14,6 +14,8 @@ import gpxpy.gpx
 import pyproj
 warnings.filterwarnings('ignore')
 import os
+import time
+from collections import deque
 
 ox.settings.use_cache = False  # <-- Most memory-safe
 
