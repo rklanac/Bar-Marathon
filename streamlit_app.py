@@ -139,7 +139,7 @@ def save_gpx_file(planner):
 # Main app
 def main():
     st.markdown('<h1 class="main-header">🍺 Bar Marathon Planner 🏃‍♂️</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="info-text">Create a marathon-length route stopping at bars along the way!</p>', unsafe_allow_html=True)
+    st.markdown('<p class="info-text">Create a marathon-length (or any length!) route stopping at bars along the way!</p>', unsafe_allow_html=True)
     
     # Sidebar for inputs
     with st.sidebar:
