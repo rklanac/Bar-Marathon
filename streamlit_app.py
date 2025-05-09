@@ -654,19 +654,20 @@ def export_to_gpx(G, route, bars_gdf, city_name):
         prev_bar_loc = node
     
     return gpx.to_xml()
-
 import streamlit as st
+from streamlit_folium import st_folium
 
-# Header and app layout setup
-st.set_page_config(
-    page_title="Bar Marathon Planner",
-    page_icon="🍺",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
-# Header
-st.markdown("""
+def main():
+    st.set_page_config(
+        page_title="Bar Marathon Planner",
+        page_icon="🍺",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+
+    # Custom CSS to improve the appearance
+    st.markdown("""
     <style>
         .main-header {
             font-size: 2.5rem;
@@ -681,8 +682,8 @@ st.markdown("""
         }
         .section-header {
             font-size: 1.2rem;
-            font-weight: 600;
-            margin-top: 2rem;
+            color: #4A4A4A;
+            margin-top: 1rem;
             margin-bottom: 0.5rem;
         }
         .info-text {
@@ -700,61 +701,60 @@ st.markdown("""
             font-size: 0.8rem;
         }
     </style>
-    <div class="main-header">🍺 Bar Marathon Planner 🏃‍♂️</div>
-    <div class="info-text" style="text-align: center;">Create a marathon-length (or any length!) route stopping at bars along the way!</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# Sidebar: Select City
-st.sidebar.header("🔍 Select Your City")
-city_name = st.sidebar.selectbox(
-    "Choose a city to load pre-cached data:",
-    list(CACHED_CITIES.keys()),
-    index=0
-)
+    st.markdown('<h1 class="main-header">🍺 Bar Marathon Planner 🏃‍♂️</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="info-text">Create a marathon-length (or any length!) route stopping at bars along the way!</p>', unsafe_allow_html=True)
 
-# Sidebar: Settings
-st.sidebar.header("⚙️ Route Settings")
-num_bars = st.sidebar.slider("Number of Bars", min_value=3, max_value=15, value=9)
-bar_spacing_km = st.sidebar.slider("Target Distance Between Bars (km)", min_value=0.5, max_value=5.0, step=0.1, value=1.0)
+    # Sidebar: Select City
+    st.sidebar.header("🔍 Select Your City")
+    city_name = st.sidebar.selectbox(
+        "Choose a city to load pre-cached data:",
+        list(CACHED_CITIES.keys()),
+        index=0
+    )
 
-# Load graph and venue data from cache
-G, center_point = download_network_cached(city_name)
-bars_gdf = find_bars_with_overpy_cached(city_name, center_point)
+    # Sidebar: Settings
+    st.sidebar.header("⚙️ Route Settings")
+    num_bars = st.sidebar.slider("Number of Bars", min_value=3, max_value=15, value=9)
+    bar_spacing_km = st.sidebar.slider("Target Distance Between Bars (km)", min_value=0.5, max_value=5.0, step=0.1, value=1.0)
 
-# Create bar marathon route
-if G is not None and bars_gdf is not None:
-    route, selected_bars = create_bar_marathon_route(G, bars_gdf, bar_spacing=bar_spacing_km, num_bars=num_bars)
-    if route:
-        # Show directions
-        directions_df = get_route_directions(G, route, bars_gdf)
-        with st.expander("🗺️ View Directions"):
-            st.dataframe(directions_df)
+    # Load graph and venue data from cache
+    G, center_point = download_network_cached(city_name)
+    bars_gdf = find_bars_with_overpy_cached(city_name, center_point)
 
-        # Show interactive map
-        folium_map = visualize_route_streamlit(G, route, bars_gdf, selected_bars)
-        if folium_map:
-            st.components.v1.html(folium_map._repr_html_(), height=600, scrolling=True)
+    # Create bar marathon route
+    if G is not None and bars_gdf is not None:
+        route, selected_bars = create_bar_marathon_route(G, bars_gdf, bar_spacing=bar_spacing_km, num_bars=num_bars)
+        if route:
+            # Show directions
+            directions_df = get_route_directions(G, route, bars_gdf)
+            with st.expander("🗺️ View Directions"):
+                st.dataframe(directions_df)
 
-        # Download GPX
-        gpx_xml = export_to_gpx(G, route, bars_gdf, city_name)
-        if gpx_xml:
-            st.download_button(
-                label="💾 Download GPX",
-                data=gpx_xml,
-                file_name=f"bar_marathon_{city_name.replace(',', '').replace(' ', '_').lower()}.gpx",
-                mime="application/gpx+xml"
-            )
+            # Show interactive map
+            folium_map = visualize_route_streamlit(G, route, bars_gdf, selected_bars)
+            if folium_map:
+                st.components.v1.html(folium_map._repr_html_(), height=600, scrolling=True)
+
+            # Download GPX
+            gpx_xml = export_to_gpx(G, route, bars_gdf, city_name)
+            if gpx_xml:
+                st.download_button(
+                    label="💾 Download GPX",
+                    data=gpx_xml,
+                    file_name=f"bar_marathon_{city_name.replace(',', '').replace(' ', '_').lower()}.gpx",
+                    mime="application/gpx+xml"
+                )
+        else:
+            st.warning("No valid route found. Adjust settings or try another city.")
     else:
-        st.warning("No valid route found. Adjust settings or try another city.")
-else:
-    st.warning("Unable to load city data. Please try again later.")
+        st.warning("Unable to load city data. Please try again later.")
 
-# Footer
-st.markdown('<p class="footer">Created with Streamlit, OSMnx, and a love for interesting adventures 🍺🌍</p>', 
-            unsafe_allow_html=True)
+    # Footer
+    st.markdown('<p class="footer">Created with Streamlit, OSMnx, and a love for interesting adventures 🍺🌍</p>', 
+                unsafe_allow_html=True)
 
-# Import missing function for Folium map display in Streamlit
-from streamlit_folium import st_folium
 
 if __name__ == "__main__":
     main()
