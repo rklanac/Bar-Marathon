@@ -740,7 +740,7 @@ def main():
                                           step=0.5)
 
         with st.expander("Advanced Options"):
-            radius_meters = st.slider("Search Radius (meters)", min_value=2000, max_value=10000, value=5000, step=500)
+            #radius_meters = st.slider("Search Radius (meters)", min_value=2000, max_value=10000, value=5000, step=500)
             network_type = st.selectbox("Network Type", ["walk", "bike", "drive"], index=0)
             include_restaurants = st.checkbox("Include Restaurants with Alcohol", value=True)
 
