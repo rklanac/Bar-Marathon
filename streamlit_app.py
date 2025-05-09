@@ -5,8 +5,9 @@ from streamlit_folium import folium_static
 import os
 import sys
 import tempfile
-import time
 import warnings
+import time
+from collections import deque
 warnings.filterwarnings('ignore')
 
 # Import the SimplifiedBarMarathonPlanner class
