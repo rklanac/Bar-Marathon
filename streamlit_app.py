@@ -767,11 +767,6 @@ def main():
                         st.warning(f"No close matches found for '{start_bar_name}'. Try typing a more accurate name.")
                 else:
                     st.warning("Bars data not loaded to search start bar.")
-            
-            # Then pass this into the route creation function:
-            st.session_state.route, st.session_state.selected_bars = create_bar_marathon_route(
-                st.session_state.G, st.session_state.bars_gdf,
-                bar_spacing=bar_spacing, num_bars=num_bars, start_bar_idx=start_bar_idx)
 
         create_button = st.button("Create Bar Marathon", type="primary", use_container_width=True)
 
@@ -806,9 +801,11 @@ def main():
 
                 with st.status("Creating optimal route...") as status:
                     if 'route' not in st.session_state or 'selected_bars' not in st.session_state or create_button:
-                        st.session_state.route, st.session_state.selected_bars = create_bar_marathon_route(
-                            st.session_state.G, st.session_state.bars_gdf,
-                            bar_spacing=bar_spacing, num_bars=num_bars)
+
+                                    # Then pass this into the route creation function:
+                        st.session_state.route, st.session_state.selected_bars = create_bar_marathon_route(st.session_state.G, st.session_state.bars_gdf,
+                                                                                                            bar_spacing=bar_spacing, num_bars=num_bars, 
+                                                                                                            start_bar_idx=start_bar_idx)
                     if st.session_state.route is None:
                         st.error("Failed to create a route. Try different parameters.")
                         status.update(label="Route creation failed", state="error")
