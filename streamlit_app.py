@@ -53,7 +53,7 @@ ox.settings.overpass_settings = '[out:json][timeout:180]'
 def download_network_cached(city_name, center_point=None, radius_meters=5000, network_type='walk'):
     try:
         safe_name = city_name.replace(',', '').replace(' ', '_').lower()
-        graph_path = Path("f{safe_name}.graphml.gz")
+        graph_path = Path(f"{safe_name}.graphml.gz")
         if graph_path.exists():
             G = ox.load_graphml(graph_path)
             center_point = CACHED_CITIES[city_name]["center"]
