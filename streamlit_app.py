@@ -57,10 +57,10 @@ def download_network_cached(city_name, center_point=None, radius_meters=5000, ne
         if graph_path.exists():
             G = ox.load_graphml(graph_path)
             center_point = CACHED_CITIES[city_name]["center"]
-        else:
-            center_point = center_point or CACHED_CITIES[city_name]["center"]
-            G = ox.graph_from_point(center_point, dist=radius_meters, network_type=network_type)
-            G = ox.project_graph(G)
+        # else:
+        #     center_point = center_point or CACHED_CITIES[city_name]["center"]
+        #     G = ox.graph_from_point(center_point, dist=radius_meters, network_type=network_type)
+        #     G = ox.project_graph(G)
         
         if not nx.is_strongly_connected(G):
             largest_cc = max(nx.strongly_connected_components(G), key=len)
