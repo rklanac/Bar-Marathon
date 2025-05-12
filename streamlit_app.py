@@ -96,8 +96,7 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
         node[{amenity_query}](around:{radius_meters},{lat},{lon});
         way[{amenity_query}](around:{radius_meters},{lat},{lon});
         relation[{amenity_query}](around:{radius_meters},{lat},{lon});
-        node["name"="Flat Top Johnny's"](around:{radius_meters},{lat},{lon});
-            );
+        );
         out center;
         """
 
@@ -117,11 +116,11 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
         # From ways and relations
         for obj in result.ways + result.relations:
             if hasattr(obj, 'center_lat') and hasattr(obj, 'center_lon'):
-                lat = float(obj.center_lat)
-                lon = float(obj.center_lon)
+                lat_obj = float(obj.center_lat)
+                lon_obj = float(obj.center_lon)
             elif hasattr(obj, 'nodes') and obj.nodes:
-                lat = sum(float(n.lat) for n in obj.nodes) / len(obj.nodes)
-                lon = sum(float(n.lon) for n in obj.nodes) / len(obj.nodes)
+                lat_obj = sum(float(n.lat) for n in obj.nodes) / len(obj.nodes)
+                lon_obj = sum(float(n.lon) for n in obj.nodes) / len(obj.nodes)
             else:
                 continue
 
@@ -129,22 +128,30 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
                 "osmid": obj.id,
                 "name": obj.tags.get("name", f"Unnamed Bar {len(locations)+1}"),
                 "amenity": obj.tags.get("amenity", "bar"),
-                "lat": lat,
-                "lon": lon
+                "lat": lat_obj,
+                "lon": lon_obj
+            })
+
+        # Manually append Flat Top Johnny’s if in Boston
+        if city_name == "Boston, MA, USA":
+            locations.append({
+                "osmid": "manual_flat_top",
+                "name": "Flat Top Johnny's",
+                "amenity": "bar",
+                "lat": 42.3654,
+                "lon": -71.1036
             })
 
         # If we don't have enough locations, try including restaurants with alcohol
         if len(locations) < 10 and include_restaurants:
             st.info("Adding restaurants with alcohol to increase venue options...")
             
-            # Query for restaurants with alcohol service
             restaurant_query = f"""
             [out:json][timeout:90];
             (
             node["amenity"="restaurant"]["alcohol"="yes"](around:{radius_meters},{lat},{lon});
             way["amenity"="restaurant"]["alcohol"="yes"](around:{radius_meters},{lat},{lon});
             relation["amenity"="restaurant"]["alcohol"="yes"](around:{radius_meters},{lat},{lon});
-            node["name"="Flat Top Johnny's"](around:{radius_meters},{lat},{lon});
             );
             out center;
             """
@@ -163,11 +170,11 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
                     
                 for obj in rest_result.ways + rest_result.relations:
                     if hasattr(obj, 'center_lat') and hasattr(obj, 'center_lon'):
-                        lat = float(obj.center_lat)
-                        lon = float(obj.center_lon)
+                        lat_obj = float(obj.center_lat)
+                        lon_obj = float(obj.center_lon)
                     elif hasattr(obj, 'nodes') and obj.nodes:
-                        lat = sum(float(n.lat) for n in obj.nodes) / len(obj.nodes)
-                        lon = sum(float(n.lon) for n in obj.nodes) / len(obj.nodes)
+                        lat_obj = sum(float(n.lat) for n in obj.nodes) / len(obj.nodes)
+                        lon_obj = sum(float(n.lon) for n in obj.nodes) / len(obj.nodes)
                     else:
                         continue
                     
@@ -175,40 +182,40 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
                         "osmid": obj.id,
                         "name": obj.tags.get("name", f"Restaurant {len(locations)+1}"),
                         "amenity": "restaurant_with_bar",
-                        "lat": lat,
-                        "lon": lon
+                        "lat": lat_obj,
+                        "lon": lon_obj
                     })
-            except Exception as e:
-                st.warning(f"Could not add restaurants: {e}")
+        except Exception as e:
+            st.warning(f"Could not add restaurants: {e}")
 
-        # Create DataFrame with the results
-        df = pd.DataFrame(locations) if locations else pd.DataFrame(columns=["osmid", "name", "amenity", "lat", "lon"])
+    # Create DataFrame with the results
+    df = pd.DataFrame(locations) if locations else pd.DataFrame(columns=["osmid", "name", "amenity", "lat", "lon"])
         
-        if df.empty:
-            st.warning("No bars found. Try a different city or increasing the search radius.")
-            return None
+    if df.empty:
+        st.warning("No bars found. Try a different city or increasing the search radius.")
+        return None
             
-        # Convert to GeoDataFrame
-        bars_gdf = gpd.GeoDataFrame(
-            df, geometry=[Point(xy) for xy in zip(df.lon, df.lat)], crs="EPSG:4326"
+    # Convert to GeoDataFrame
+    bars_gdf = gpd.GeoDataFrame(
+        df, geometry=[Point(xy) for xy in zip(df.lon, df.lat)], crs="EPSG:4326"
         )
         
-        # Remove unwanted venues and reset index
-        bars_gdf = bars_gdf[bars_gdf['amenity'] != 'public_bookcase']
-        bars_gdf = bars_gdf.reset_index(drop=True)
+    # Remove unwanted venues and reset index
+    bars_gdf = bars_gdf[bars_gdf['amenity'] != 'public_bookcase']
+    bars_gdf = bars_gdf.reset_index(drop=True)
         
-        st.success(f"Found {len(bars_gdf)} venues in {city_name}.")
-        return bars_gdf
+    st.success(f"Found {len(bars_gdf)} venues in {city_name}.")
+    return bars_gdf
         
     except Exception as e:
         st.error(f"Error finding bars: {e}")
         
-        # Try with a larger radius as fallback
-        if radius_meters < 10000:
-            st.warning("Trying with larger search radius...")
-            return find_bars_with_overpy_cached(city_name, center_point, int(radius_meters * 1.5), include_restaurants)
-        else:
-            return None
+    # Try with a larger radius as fallback
+    if radius_meters < 10000:
+        st.warning("Trying with larger search radius...")
+        return find_bars_with_overpy_cached(city_name, center_point, int(radius_meters * 1.5), include_restaurants)
+    else:
+        return None
 
 def create_bar_marathon_route(G, bars_gdf, bar_spacing=5.0, num_bars=9, start_bar_idx=None):
     """
