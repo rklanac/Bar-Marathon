@@ -96,7 +96,6 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
         node[{amenity_query}](around:{radius_meters},{lat},{lon});
         way[{amenity_query}](around:{radius_meters},{lat},{lon});
         relation[{amenity_query}](around:{radius_meters},{lat},{lon});
-        );
         node["name"="Flat Top Johnny's"](around:{radius_meters},{lat},{lon});
             );
         out center;
