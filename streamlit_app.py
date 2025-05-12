@@ -138,8 +138,8 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
                 "osmid": "manual_flat_top",
                 "name": "Flat Top Johnny's",
                 "amenity": "bar",
-                "lat": 42.373611,
-                "lon": -71.110558
+                "lat": 42.361639,
+                "lon": -71.085149
             })
 
         # If we don't have enough locations, try including restaurants with alcohol
