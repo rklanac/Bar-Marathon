@@ -185,27 +185,27 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
                         "lat": lat_obj,
                         "lon": lon_obj
                     })
-        except Exception as e:
-            st.warning(f"Could not add restaurants: {e}")
+            except Exception as e:
+                st.warning(f"Could not add restaurants: {e}")
 
-    # Create DataFrame with the results
-    df = pd.DataFrame(locations) if locations else pd.DataFrame(columns=["osmid", "name", "amenity", "lat", "lon"])
-        
-    if df.empty:
-        st.warning("No bars found. Try a different city or increasing the search radius.")
-        return None
+        # Create DataFrame with the results
+        df = pd.DataFrame(locations) if locations else pd.DataFrame(columns=["osmid", "name", "amenity", "lat", "lon"])
             
-    # Convert to GeoDataFrame
-    bars_gdf = gpd.GeoDataFrame(
-        df, geometry=[Point(xy) for xy in zip(df.lon, df.lat)], crs="EPSG:4326"
-        )
-        
-    # Remove unwanted venues and reset index
-    bars_gdf = bars_gdf[bars_gdf['amenity'] != 'public_bookcase']
-    bars_gdf = bars_gdf.reset_index(drop=True)
-        
-    st.success(f"Found {len(bars_gdf)} venues in {city_name}.")
-    return bars_gdf
+        if df.empty:
+            st.warning("No bars found. Try a different city or increasing the search radius.")
+            return None
+                
+        # Convert to GeoDataFrame
+        bars_gdf = gpd.GeoDataFrame(
+            df, geometry=[Point(xy) for xy in zip(df.lon, df.lat)], crs="EPSG:4326"
+            )
+            
+        # Remove unwanted venues and reset index
+        bars_gdf = bars_gdf[bars_gdf['amenity'] != 'public_bookcase']
+        bars_gdf = bars_gdf.reset_index(drop=True)
+            
+        st.success(f"Found {len(bars_gdf)} venues in {city_name}.")
+        return bars_gdf
         
     except Exception as e:
         st.error(f"Error finding bars: {e}")
