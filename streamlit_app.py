@@ -133,7 +133,7 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
                 "lon": lon_obj
             })
 
-        # Manually append Flat Top Johnny's if in Boston
+        # Manually append Flat Top Johnny’s if in Boston
         if city_name == "Boston, MA, USA":
             locations.append({
                 "osmid": "manual_flat_top",
@@ -150,13 +150,9 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
             restaurant_query = f"""
             [out:json][timeout:90];
             (
-            node["amenity"="restaurant"]["alcohol"~"yes|served|beer|wine|cocktails"](around:{radius_meters},{lat},{lon});
-            way["amenity"="restaurant"]["alcohol"~"yes|served|beer|wine|cocktails"](around:{radius_meters},{lat},{lon});
-            relation["amenity"="restaurant"]["alcohol"~"yes|served|beer|wine|cocktails"](around:{radius_meters},{lat},{lon});
-            node["amenity"="restaurant"]["cuisine"~".*pizza.*|.*italian.*|.*mexican.*|.*american.*|.*grill.*|.*steakhouse.*"](around:{radius_meters},{lat},{lon});
-            way["amenity"="restaurant"]["cuisine"~".*pizza.*|.*italian.*|.*mexican.*|.*american.*|.*grill.*|.*steakhouse.*"](around:{radius_meters},{lat},{lon});
-            node["amenity"~"fast_food|cafe"]["alcohol"~"yes|served|beer|wine"](around:{radius_meters},{lat},{lon});
-            way["amenity"~"fast_food|cafe"]["alcohol"~"yes|served|beer|wine"](around:{radius_meters},{lat},{lon});
+            node["amenity"="restaurant"]["alcohol"="yes"](around:{radius_meters},{lat},{lon});
+            way["amenity"="restaurant"]["alcohol"="yes"](around:{radius_meters},{lat},{lon});
+            relation["amenity"="restaurant"]["alcohol"="yes"](around:{radius_meters},{lat},{lon});
             );
             out center;
             """
@@ -165,18 +161,10 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
                 rest_result = api.query(restaurant_query)
                 
                 for node in rest_result.nodes:
-                    amenity_type = node.tags.get("amenity", "restaurant")
-                    if amenity_type == "restaurant":
-                        display_amenity = "restaurant_with_bar"
-                    elif amenity_type in ["fast_food", "cafe"]:
-                        display_amenity = f"{amenity_type}_with_bar"
-                    else:
-                        display_amenity = "restaurant_with_bar"
-                        
                     locations.append({
                         "osmid": node.id,
                         "name": node.tags.get("name", f"Restaurant {len(locations)+1}"),
-                        "amenity": display_amenity,
+                        "amenity": "restaurant_with_bar",
                         "lat": float(node.lat),
                         "lon": float(node.lon)
                     })
@@ -190,19 +178,11 @@ def find_bars_with_overpy_cached(city_name, center_point, radius_meters=5000, in
                         lon_obj = sum(float(n.lon) for n in obj.nodes) / len(obj.nodes)
                     else:
                         continue
-
-                    amenity_type = obj.tags.get("amenity", "restaurant")
-                    if amenity_type == "restaurant":
-                        display_amenity = "restaurant_with_bar"
-                    elif amenity_type in ["fast_food", "cafe"]:
-                        display_amenity = f"{amenity_type}_with_bar"
-                    else:
-                        display_amenity = "restaurant_with_bar"
                     
                     locations.append({
                         "osmid": obj.id,
                         "name": obj.tags.get("name", f"Restaurant {len(locations)+1}"),
-                        "amenity": display_amenity,
+                        "amenity": "restaurant_with_bar",
                         "lat": lat_obj,
                         "lon": lon_obj
                     })
