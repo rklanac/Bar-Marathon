@@ -40,7 +40,7 @@ CACHED_CITIES = {
     "Toronto, Canada": {"center": (43.6532, -79.3832), "radius_meters": 5000},
     "Montreal, Canada": {"center": (45.5017, -73.5673), "radius_meters": 5000},
     "Cleveland, OH, USA": {"center": (41.4993, -81.6944), "radius_meters": 5000},
-    "Wilmington, NC, USA": {"center": (34.233498, -77.887141), "radius_meters": 10000}
+    "Wilmington, NC, USA": {"center": (34.238206, -77.882040), "radius_meters": 10000}
 }
 
 # Configure OSMnx for better Streamlit compatibility
